@@ -4,7 +4,7 @@ right before it breaks production on a Friday.
 
 The program holds a single fixed line, checks it against the bounty's
 gate (UTF-8 text, 1 to 159 characters, exactly one line, not only white
-space, no leading or trailing white space), writes it to entry.txt in
+space, no leading or trailing white space, no control characters), writes it to entry.txt in
 the output directory, and reads the file back to confirm it round-trips
 byte for byte.
 
@@ -18,6 +18,7 @@ and no randomness, so every run writes the same bytes.
 
 import os
 import sys
+import unicodedata
 
 # The commit message, exactly one line. An upbeat agent ships at 4:59 PM
 # on a Friday, sure the tests are green because they passed on its own
@@ -42,6 +43,12 @@ def gate_error(line):
         return "entry is only white space"
     if "\n" in line or "\r" in line:
         return "entry spans more than one line"
+    # A commit message must be plain printable text: control characters
+    # (other than the line breaks already rejected above) would corrupt
+    # the log line and the judge's read of it.
+    for char in line:
+        if unicodedata.category(char) == "Cc":
+            return "entry holds a control character %r" % char
     try:
         line.encode("utf-8")
     except UnicodeEncodeError:
